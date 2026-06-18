@@ -12,6 +12,11 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/.playwright/
+/.playwright-cli/
+/output/playwright/
 
 # next.js
 /.next/
@@ -23,6 +28,8 @@
 # misc
 .DS_Store
 *.pem
+/data/newsletter-subscribers.jsonl
+/data/video-newsletter-runs.jsonl
 
 # debug
 npm-debug.log*

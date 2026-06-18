@@ -1,65 +1,485 @@
 import Image from "next/image";
+import {
+  ArrowRight,
+  Calendar,
+  CirclePlay,
+  ExternalLink,
+  Mail,
+  Play,
+  Send,
+  SquarePlay,
+} from "lucide-react";
+import { ContactForm, NewsletterForm } from "./contact-forms";
+import { SiteHeader } from "./site-header";
 
-export default function Home() {
+const youtubeChannelUrl = "https://www.youtube.com/@dot-craft";
+const youtubeChannelId = "UC56nbpn8CjYP6eW5UXF_sVg";
+const latestVideoFallback = {
+  description:
+    "コンテキストエンジニアリングの次に来る開発思想「ループエンジニアリング」をテーマに、AI時代のソフトウェア開発と人間の役割の変化を掘り下げます。",
+  publishedAt: "2026-06-12T09:00:35+00:00",
+  title:
+    "【Loop Engineering】ループエンジニアリングとは何か？ソフトウェア開発の完全自動化は近い",
+  url: "https://www.youtube.com/watch?v=NHMdaxnfkWs",
+  videoId: "NHMdaxnfkWs",
+};
+
+const navItems = ["About", "Video", "Contents", "Newsletter", "Contact"];
+
+const aboutHosts = [
+  {
+    name: "橋本 武士",
+    image: "/assets/about-host-takeshi.png",
+    alt: "橋本 武士のプロフィール写真",
+    xHandle: "@dancing_amigo",
+    xUrl: "https://x.com/dancing_amigo",
+  },
+  {
+    name: "山本 圭亮",
+    image: "/assets/about-host-keisuke.png",
+    alt: "山本 圭亮のプロフィール写真",
+    xHandle: "@_AlwaysAI",
+    xUrl: "https://x.com/_AlwaysAI",
+  },
+];
+
+const contentLinks = [
+  {
+    title: "YouTube",
+    body: "最新動画や人気動画をチェックできます。",
+    icon: "youtube",
+    href: youtubeChannelUrl,
+    external: true,
+  },
+  {
+    title: "X（旧Twitter）",
+    body: "最新情報や日々の気づきをタイムリーに発信中。",
+    icon: "x",
+    href: "https://x.com/dot_craft_",
+    external: true,
+  },
+  {
+    title: "Discord Community",
+    body: "視聴者同士でAIについて語り合えるコミュニティ。",
+    icon: "discord",
+    href: "https://discord.gg/AkhnVsWKSb",
+    external: true,
+  },
+  {
+    title: "Newsletter",
+    body: "限定コラムや最新の業界をメールでお届けします。",
+    icon: "mail",
+    href: "#newsletter",
+    external: false,
+  },
+];
+
+type LatestVideo = typeof latestVideoFallback;
+
+function decodeXmlText(value: string) {
+  return value
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&#x([\da-f]+);/gi, (_, code: string) =>
+      String.fromCodePoint(Number.parseInt(code, 16)),
+    )
+    .replace(/&#(\d+);/g, (_, code: string) =>
+      String.fromCodePoint(Number.parseInt(code, 10)),
+    )
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<")
+    .replace(/&amp;/g, "&")
+    .trim();
+}
+
+function extractTagText(xml: string, tagName: string) {
+  const match = xml.match(
+    new RegExp(`<${tagName}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tagName}>`),
+  );
+
+  return match?.[1] ? decodeXmlText(match[1]) : "";
+}
+
+function extractAlternateLink(entryXml: string) {
+  const match = entryXml.match(
+    /<link\s+[^>]*rel="alternate"[^>]*href="([^"]+)"/,
+  );
+
+  return match?.[1] ? decodeXmlText(match[1]) : "";
+}
+
+function summarizeDescription(description: string) {
+  const cleaned = description
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/\r/g, "")
+    .trim();
+  const firstBlock = cleaned
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .find(Boolean);
+  const summary = firstBlock || cleaned;
+
+  return summary.length > 180 ? `${summary.slice(0, 180)}...` : summary;
+}
+
+function parseLatestVideoFeed(xml: string): LatestVideo | null {
+  const entry = xml.match(/<entry>([\s\S]*?)<\/entry>/)?.[1];
+
+  if (!entry) {
+    return null;
+  }
+
+  const videoId = extractTagText(entry, "yt:videoId");
+  const title = extractTagText(entry, "title");
+  const description = summarizeDescription(
+    extractTagText(entry, "media:description"),
+  );
+  const publishedAt = extractTagText(entry, "published");
+  const url = extractAlternateLink(entry);
+
+  if (!videoId || !title || !url) {
+    return null;
+  }
+
+  return {
+    description: description || latestVideoFallback.description,
+    publishedAt: publishedAt || latestVideoFallback.publishedAt,
+    title,
+    url,
+    videoId,
+  };
+}
+
+async function getLatestVideo(): Promise<LatestVideo> {
+  try {
+    const response = await fetch(
+      `https://www.youtube.com/feeds/videos.xml?channel_id=${youtubeChannelId}`,
+      {
+        headers: {
+          accept: "application/atom+xml, application/xml;q=0.9, text/xml;q=0.8",
+        },
+        next: { revalidate: 60 * 60 },
+      },
+    );
+
+    if (!response.ok) {
+      return latestVideoFallback;
+    }
+
+    return parseLatestVideoFeed(await response.text()) || latestVideoFallback;
+  } catch {
+    return latestVideoFallback;
+  }
+}
+
+function formatPublishedDate(publishedAt: string) {
+  const date = new Date(publishedAt);
+
+  if (Number.isNaN(date.getTime())) {
+    return publishedAt;
+  }
+
+  return new Intl.DateTimeFormat("ja-JP", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+function BrandLogo() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+    <span className="brand-wordmark" aria-hidden="true">
+      <span className="brand-dot" />
+      <span>DotCraft</span>
+    </span>
+  );
+}
+
+function HeroBackground() {
+  return (
+    <div className="hero-background" aria-hidden="true">
+      <Image
+        className="hero-image"
+        src="/assets/dotcraft-hero-bg.png"
+        alt=""
+        fill
+        preload
+        sizes="100vw"
+      />
+    </div>
+  );
+}
+
+function AboutHostCard({ host }: { host: (typeof aboutHosts)[number] }) {
+  return (
+    <article className="about-host-card">
+      <div className="about-host-image">
         <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+          src={host.image}
+          alt={host.alt}
+          fill
+          sizes="(max-width: 640px) calc(100vw - 76px), (max-width: 840px) 42vw, 220px"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+      </div>
+      <h3>{host.name}</h3>
+      <a
+        className="host-social-link"
+        href={host.xUrl}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`${host.name}のXアカウント`}
+      >
+        <Image
+          className="host-social-icon"
+          src="/assets/icons/x.svg"
+          alt=""
+          width={14}
+          height={14}
+          aria-hidden="true"
+        />
+        <span>{host.xHandle}</span>
+      </a>
+    </article>
+  );
+}
+
+function VideoPreview({ video }: { video: LatestVideo }) {
+  const thumbnailUrl = `https://i.ytimg.com/vi/${video.videoId}/maxresdefault.jpg`;
+
+  return (
+    <a
+      className="video-preview"
+      href={video.url}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`${video.title}をYouTubeで視聴`}
+    >
+      <Image
+        className="video-thumbnail"
+        src={thumbnailUrl}
+        alt=""
+        width={1280}
+        height={720}
+        sizes="(max-width: 840px) 100vw, 47vw"
+      />
+      <span className="video-preview-brand">.craft</span>
+      <span className="video-preview-title">
+        <span>【Loop Engineering】</span>
+        <span>ループエンジニアリングとは何か？</span>
+      </span>
+      <span className="video-preview-subtitle">
+        ソフトウェア開発の完全自動化は近い
+      </span>
+      <span className="youtube-play" aria-hidden="true">
+        <Play size={34} fill="currentColor" strokeWidth={0} />
+      </span>
+    </a>
+  );
+}
+
+function ContentIcon({ icon }: { icon: (typeof contentLinks)[number]["icon"] }) {
+  return (
+    <Image
+      className={`content-icon-image ${icon}`}
+      src={`/assets/icons/${icon}.svg`}
+      alt=""
+      width={96}
+      height={96}
+      aria-hidden="true"
+    />
+  );
+}
+
+export default async function Home() {
+  const latestVideo = await getLatestVideo();
+
+  return (
+    <main className="site-shell">
+      <SiteHeader navItems={navItems} youtubeUrl={youtubeChannelUrl} />
+
+      <section id="top" className="hero-section">
+        <HeroBackground />
+        <div className="hero-copy">
+          <h1>
+            知識を点に、
+            <br />
+            思考を地図に。
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="hero-lead">
+            <span>思考の種を生むテクノロジーメディア</span>
+          </p>
+          <p className="hero-body">
+            AI技術の本質や活用方法、社会への影響、働き方や創造性の変化、最新テクノロジーの動向まで。ばらばらに見える知識の点を打ち込み、問いによってつなぎ直すことで、未来を読み解くための思考の地図を育てていきます。
+          </p>
+          <div className="hero-actions">
+            <a className="primary-button" href="#video">
+              <CirclePlay size={20} />
+              最新動画を見る
+            </a>
+            <a className="outline-button" href={youtubeChannelUrl} target="_blank" rel="noreferrer">
+              <SquarePlay size={20} />
+              YouTubeへ
+              <ArrowRight size={22} />
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section id="about" className="section about-section">
+        <div className="about-layout">
+          <div className="about-copy">
+            <p className="section-kicker">About</p>
+            <h2>
+              <span className="nowrap about-title-line">
+                <span>AIの本質と未来を</span>
+                <span>探求する</span>
+              </span>
+              <br />
+              2人のホスト
+            </h2>
+            <p>
+              テクノロジーと社会の接点に関心を持つ2人が、AIについて多角的な視点から議論し、
+              わかりやすく解説します。
+            </p>
+            <p>
+              技術・社会・ビジネス・創造性など、さまざまな切り口からAIの本質と未来を探求していきます。
+            </p>
+          </div>
+          <div className="about-hosts" aria-label="ホスト">
+            {aboutHosts.map((host) => (
+              <AboutHostCard host={host} key={host.name} />
+            ))}
+          </div>
+          <aside className="company-panel" aria-label="運営会社">
+            <p className="section-kicker">運営会社</p>
+            <h3>CordMark株式会社</h3>
+            <p>
+              わたしたちCordMarkは、AI時代におけるテクノロジーの社会実装と、
+              人・組織・社会の変革を支援する会社です。
+            </p>
+            <p>
+              AIに関するコンテンツ制作・教育・コンサルティング・プロダクト開発などを通じて、
+              未来の社会に必要な価値をつくっていきます。
+            </p>
+            <a className="company-link" href="https://cordmark.co.jp/" target="_blank" rel="noreferrer">
+              会社サイトへ
+              <ArrowRight size={22} />
+            </a>
+          </aside>
+        </div>
+      </section>
+
+      <section id="video" className="section video-section">
+        <div className="section-heading video-heading">
+          <p className="section-kicker">Latest Video</p>
+          <h2>最新の動画</h2>
+        </div>
+        <div className="video-grid">
+          <VideoPreview video={latestVideo} />
+          <div className="video-copy">
+            <h3>{latestVideo.title}</h3>
+            <p>{latestVideo.description}</p>
+            <div className="video-meta">
+              <span>
+                <Calendar size={18} />
+                {formatPublishedDate(latestVideo.publishedAt)}
+              </span>
+            </div>
+            <a className="primary-button compact" href={latestVideo.url} target="_blank" rel="noreferrer">
+              YouTubeで視聴
+              <ExternalLink size={18} />
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section id="contents" className="section contents-section">
+        <div className="section-heading contents-heading">
+          <p className="section-kicker">Connect</p>
+          <h2>DotCraftとつながる</h2>
+        </div>
+        <div className="content-grid">
+          {contentLinks.map((item) => {
+            return (
+              <a
+                className="content-card"
+                href={item.href}
+                key={item.title}
+                rel={item.external ? "noreferrer" : undefined}
+                target={item.external ? "_blank" : undefined}
+              >
+                <span className="content-icon">
+                  <ContentIcon icon={item.icon} />
+                </span>
+                <span className="content-card-copy">
+                  <strong>{item.title}</strong>
+                  {item.body}
+                </span>
+                <ArrowRight className="content-arrow" size={22} />
+              </a>
+            );
+          })}
+        </div>
+      </section>
+
+      <section id="newsletter" className="section newsletter-section">
+        <div className="mail-illustration" aria-hidden="true">
+          <Mail size={44} />
+        </div>
+        <div className="newsletter-copy">
+          <p className="section-kicker">Newsletter</p>
+          <h2>最新の知見をメールでお届け</h2>
+          <p>
+            限定コラムや最新の業界動向、イベント情報などを
+            <br />
+            いち早くお届けします。
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <NewsletterForm />
+      </section>
+
+      <section id="contact" className="section contact-section">
+        <div className="contact-copy">
+          <p className="section-kicker">Contact</p>
+          <h2>Contact Us</h2>
+          <p>
+            コラボレーション、取材・メディア掲載、講演・登壇のご依頼など、
+            お気軽にご連絡ください。
+          </p>
         </div>
-      </main>
-    </div>
+        <ContactForm />
+      </section>
+
+      <footer className="site-footer">
+        <div>
+          <a className="brand footer-brand" href="#top" aria-label="DotCraft ホーム">
+            <BrandLogo />
+          </a>
+          <p>AIと社会の未来を、わかりやすく、深く、考える。</p>
+          <div className="footer-social">
+            <a href={youtubeChannelUrl} target="_blank" rel="noreferrer" aria-label="YouTube">
+              <SquarePlay size={18} />
+            </a>
+            <a href="https://x.com/dot_craft_" target="_blank" rel="noreferrer" aria-label="X">
+              <Send size={18} />
+            </a>
+            <a href="#newsletter" aria-label="Newsletter">
+              <Mail size={18} />
+            </a>
+          </div>
+        </div>
+        <div className="footer-links">
+          {navItems.map((item) => (
+            <a key={item} href={`#${item.toLowerCase()}`}>
+              {item}
+            </a>
+          ))}
+          <span>プライバシーポリシー</span>
+          <span>特定商取引法に基づく表記</span>
+        </div>
+        <p className="copyright">© 2026 DotCraft. All Rights Reserved.</p>
+      </footer>
+    </main>
   );
 }
