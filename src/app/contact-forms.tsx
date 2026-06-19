@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, useState } from "react";
 
 type FormState = {
@@ -91,7 +92,11 @@ export function NewsletterForm() {
       <button type="submit" disabled={state.pending}>
         {state.pending ? "送信中..." : "登録する"}
       </button>
-      <p>登録することで、プライバシーポリシーに同意したものとみなされます。</p>
+      <p>
+        登録することで、
+        <Link href="/privacy-policy">プライバシーポリシー</Link>
+        に同意したものとみなされます。
+      </p>
       <FormStatus state={state} />
       <input type="hidden" name="formType" value="newsletter" />
       <input

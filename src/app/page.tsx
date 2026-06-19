@@ -6,10 +6,10 @@ import {
   ExternalLink,
   Mail,
   Play,
-  Send,
   SquarePlay,
 } from "lucide-react";
 import { ContactForm, NewsletterForm } from "./contact-forms";
+import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 
 const youtubeChannelUrl = "https://www.youtube.com/@dot-craft";
@@ -187,15 +187,6 @@ function formatPublishedDate(publishedAt: string) {
   }).format(date);
 }
 
-function BrandLogo() {
-  return (
-    <span className="brand-wordmark" aria-hidden="true">
-      <span className="brand-dot" />
-      <span>DotCraft</span>
-    </span>
-  );
-}
-
 function HeroBackground() {
   return (
     <div className="hero-background" aria-hidden="true">
@@ -331,19 +322,18 @@ export default async function Home() {
           <div className="about-copy">
             <p className="section-kicker">About</p>
             <h2>
-              <span className="nowrap about-title-line">
-                <span>AIの本質と未来を</span>
-                <span>探求する</span>
+              <span className="about-title-line">
+                <span>AI時代の</span>
+                <span>当たり前を疑う</span>
               </span>
               <br />
               2人のホスト
             </h2>
             <p>
-              テクノロジーと社会の接点に関心を持つ2人が、AIについて多角的な視点から議論し、
-              わかりやすく解説します。
+              AIで何が便利になるのかだけでなく、何をつくるべきか、どう働くべきかまで問い直します。
             </p>
             <p>
-              技術・社会・ビジネス・創造性など、さまざまな切り口からAIの本質と未来を探求していきます。
+              2人のホストが、技術と社会の変化を行き来しながら、AI時代の思考と実践を掘り下げます。
             </p>
           </div>
           <div className="about-hosts" aria-label="ホスト">
@@ -355,12 +345,12 @@ export default async function Home() {
             <p className="section-kicker">運営会社</p>
             <h3>CordMark株式会社</h3>
             <p>
-              わたしたちCordMarkは、AI時代におけるテクノロジーの社会実装と、
-              人・組織・社会の変革を支援する会社です。
+              わたしたちCordMarkは、企業の意思決定・業務プロセス・プロダクト開発を、
+              AI前提の構造へ再設計するAI Native Studioです。
             </p>
             <p>
-              AIに関するコンテンツ制作・教育・コンサルティング・プロダクト開発などを通じて、
-              未来の社会に必要な価値をつくっていきます。
+              生成AI、AI Agent、業務自動化、データ基盤の実装を通じて、
+              現場で使われ続けるAI Nativeな仕組みをつくっていきます。
             </p>
             <a className="company-link" href="https://cordmark.co.jp/" target="_blank" rel="noreferrer">
               会社サイトへ
@@ -451,35 +441,7 @@ export default async function Home() {
         <ContactForm />
       </section>
 
-      <footer className="site-footer">
-        <div>
-          <a className="brand footer-brand" href="#top" aria-label="DotCraft ホーム">
-            <BrandLogo />
-          </a>
-          <p>AIと社会の未来を、わかりやすく、深く、考える。</p>
-          <div className="footer-social">
-            <a href={youtubeChannelUrl} target="_blank" rel="noreferrer" aria-label="YouTube">
-              <SquarePlay size={18} />
-            </a>
-            <a href="https://x.com/dot_craft_" target="_blank" rel="noreferrer" aria-label="X">
-              <Send size={18} />
-            </a>
-            <a href="#newsletter" aria-label="Newsletter">
-              <Mail size={18} />
-            </a>
-          </div>
-        </div>
-        <div className="footer-links">
-          {navItems.map((item) => (
-            <a key={item} href={`#${item.toLowerCase()}`}>
-              {item}
-            </a>
-          ))}
-          <span>プライバシーポリシー</span>
-          <span>特定商取引法に基づく表記</span>
-        </div>
-        <p className="copyright">© 2026 DotCraft. All Rights Reserved.</p>
-      </footer>
+      <SiteFooter navItems={navItems} youtubeUrl={youtubeChannelUrl} />
     </main>
   );
 }

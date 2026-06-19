@@ -1,18 +1,27 @@
 "use client";
 
+import Link from "next/link";
 import { Menu, SquarePlay, X } from "lucide-react";
 import { useState } from "react";
+import { BrandLogo } from "./brand-logo";
 
 type SiteHeaderProps = {
+  homeHref?: string;
+  navBaseHref?: string;
   navItems: string[];
   youtubeUrl: string;
 };
 
-function navHref(item: string) {
-  return `#${item.toLowerCase()}`;
+function navHref(item: string, baseHref: string) {
+  return `${baseHref}#${item.toLowerCase()}`;
 }
 
-export function SiteHeader({ navItems, youtubeUrl }: SiteHeaderProps) {
+export function SiteHeader({
+  homeHref = "#top",
+  navBaseHref = "",
+  navItems,
+  youtubeUrl,
+}: SiteHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuItems = navItems;
 
@@ -21,19 +30,16 @@ export function SiteHeader({ navItems, youtubeUrl }: SiteHeaderProps) {
   return (
     <>
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="DotCraft ホーム" onClick={closeMenu}>
-          <span className="brand-wordmark" aria-hidden="true">
-            <span className="brand-dot" />
-            <span>DotCraft</span>
-          </span>
-        </a>
+        <Link className="brand" href={homeHref} aria-label="DotCraft ホーム" onClick={closeMenu}>
+          <BrandLogo className="header-brand-logo" preload />
+        </Link>
 
         <div className="header-actions">
           <nav className="nav-links" aria-label="メインナビゲーション">
             {menuItems.map((item) => (
-              <a key={item} href={navHref(item)}>
+              <Link key={item} href={navHref(item, navBaseHref)}>
                 {item}
-              </a>
+              </Link>
             ))}
           </nav>
           <a
@@ -82,9 +88,9 @@ export function SiteHeader({ navItems, youtubeUrl }: SiteHeaderProps) {
           </button>
           <nav className="mobile-nav-links">
             {menuItems.map((item) => (
-              <a key={item} href={navHref(item)} onClick={closeMenu}>
+              <Link key={item} href={navHref(item, navBaseHref)} onClick={closeMenu}>
                 {item}
-              </a>
+              </Link>
             ))}
           </nav>
           <a
