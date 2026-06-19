@@ -192,10 +192,11 @@ function HeroBackground() {
     <div className="hero-background" aria-hidden="true">
       <Image
         className="hero-image"
-        src="/assets/dotcraft-hero-bg.png"
+        src="/assets/dotcraft-hero-bg.webp"
         alt=""
         fill
-        preload
+        fetchPriority="high"
+        loading="eager"
         sizes="100vw"
       />
     </div>

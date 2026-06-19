@@ -17,7 +17,7 @@ export function BrandLogo({
     <span className={classNames} aria-hidden="true" style={{ position: "relative" }}>
       <Image
         className="brand-logo-image"
-        src="/assets/dotcraft-transparent.png"
+        src="/assets/dotcraft-transparent.webp"
         alt=""
         fill
         preload={preload}

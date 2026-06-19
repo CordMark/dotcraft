@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { type FormEvent, useState } from "react";
 
 type FormState = {
@@ -94,7 +93,7 @@ export function NewsletterForm() {
       </button>
       <p>
         登録することで、
-        <Link href="/privacy-policy">プライバシーポリシー</Link>
+        <a href="/privacy-policy">プライバシーポリシー</a>
         に同意したものとみなされます。
       </p>
       <FormStatus state={state} />
